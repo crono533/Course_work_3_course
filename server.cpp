@@ -1,13 +1,15 @@
 #include <iostream>
 #include <WinSock2.h>
 
+//чтобы компилить g++ proxy.cpp -o proxy -lws2_32
+
 #pragma comment(lib, "ws2_32.lib")
 
-#define PORT 51132
+#define PORT 8080
 
 int main() {
     WSADATA wsaData;
-    SOCKET serverSocket, clientSocket;
+    SOCKET serverSocket, proxySocket;
     struct sockaddr_in serverAddr, clientAddr;
     int addrLen = sizeof(clientAddr);
     char buffer[1024];
@@ -53,8 +55,8 @@ int main() {
     std::cout << "Server listening on " << localIP << ":" << localPort << std::endl;
 
     // Accept connection
-    clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen);
-    if (clientSocket == INVALID_SOCKET) {
+    proxySocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen);
+    if (proxySocket == INVALID_SOCKET) {
         std::cout << "Accept failed\n";
         closesocket(serverSocket);
         WSACleanup();
@@ -66,10 +68,10 @@ int main() {
     // Communication with client
     while (true) {
         // Receive message from client
-        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+        int bytesReceived = recv(proxySocket, buffer, sizeof(buffer), 0);
         if (bytesReceived == SOCKET_ERROR) {
             std::cout << "Receive failed\n";
-            closesocket(clientSocket);
+            closesocket(proxySocket);
             closesocket(serverSocket);
             WSACleanup();
             return 1;
@@ -84,10 +86,10 @@ int main() {
         // Send message to client
         std::cout << "Enter message for client: ";
         std::cin.getline(buffer, sizeof(buffer));
-        int bytesSent = send(clientSocket, buffer, strlen(buffer), 0);
+        int bytesSent = send(proxySocket, buffer, strlen(buffer), 0);
         if (bytesSent == SOCKET_ERROR) {
             std::cout << "Send failed\n";
-            closesocket(clientSocket);
+            closesocket(proxySocket);
             closesocket(serverSocket);
             WSACleanup();
             return 1;
@@ -95,7 +97,7 @@ int main() {
     }
 
     // Cleanup
-    closesocket(clientSocket);
+    closesocket(proxySocket);
     closesocket(serverSocket);
     WSACleanup();
 

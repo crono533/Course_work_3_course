@@ -1,25 +1,36 @@
 #include <iostream>
 #include <WinSock2.h>
 
+//чтобы компилить g++ proxy.cpp -o proxy -lws2_32
+
 using namespace std;
 
 #pragma comment(lib, "ws2_32.lib")
 
 #define PORT 51132
-#define SERVER_IP "192.168.137.1"
+
+#define PROXY_IP "192.168.137.1"
+
 int main() {
-    WSADATA wsaData;
-    SOCKET clientSocket;
-    struct sockaddr_in serverAddr;
-    char buffer[1024];
+    //объект струткры WSADATA (Windows Sockets Data), нужен для инициализации и контроля состояния сокетов
+    //с помощью этой стрктуры можно понимать сколько зарезервировано памяти под сокеты и многое другое
+    WSADATA wsaData; 
+
+
 
     // Initialize Winsock
+    //при инициализации MAKEWORD дает понять какую версию WinSock запускать, выбрал 2.2 т.к. она новее просто
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         std::cout << "WSAStartup failed\n";
         return 1;
     }
 
     // Create socket
+    SOCKET clientSocket;  //объявляем сокет 
+
+    //AF_INET указывает на семейтво проктоколов IPv4
+    //SOCK_STREAM - тип сокета который поддерживает постоянное соединение
+    //IPPROTO_TCP - явно указываем на использование TCP протокола
     clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (clientSocket == INVALID_SOCKET) {
         std::cout << "Error creating socket\n";
@@ -27,12 +38,15 @@ int main() {
         return 1;
     }
 
-    // Fill in server address structure
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(PORT);
-    serverAddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    // Fill in proxy server address structure (устанавливаем соединение и заполняем переменную адресата с кем будем общаться)
+    struct sockaddr_in proxyAddr;
+    char buffer[1024];
+    proxyAddr.sin_family = AF_INET; //устанавливаем семейство протоколов
+    proxyAddr.sin_port = htons(PORT); //с помощью htons переводим номер порта в TCP/TP представлание
+    proxyAddr.sin_addr.s_addr = inet_addr(PROXY_IP);// с помощью inet_addr переводим PROXY_IP в предствление TCP/IP
+
     // Connect to server
-    if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+    if (connect(clientSocket, (struct sockaddr*)&proxyAddr, sizeof(proxyAddr)) == SOCKET_ERROR) {
         std::cout << "Connection failed\n";
         closesocket(clientSocket);
         WSACleanup();
